@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reality Glitch Simulator Deluxe</title>
+<style>
+body{margin:0;overflow:hidden;background:#0b0b14;color:#fff;font-family:Arial}
+#game{position:fixed;inset:0}
+#hud{position:fixed;top:10px;left:10px;z-index:10}
+button{font-size:18px}
+#joystick{position:fixed;left:20px;bottom:20px;width:120px;height:120px;border:2px solid #888;border-radius:50%}
+#stick{position:absolute;left:45px;top:45px;width:30px;height:30px;background:#fff;border-radius:50%}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud">
+<h3>Reality Glitch Simulator Deluxe</h3>
+<div id="stats">Level 1 | XP 0 | Bosses 0</div>
+<div id="event">Reality Stable</div>
+</div>
+<div id="joystick"><div id="stick"></div></div>
+<script>
+const c=document.getElementById("game"),x=c.getContext("2d");
+function resize(){c.width=innerWidth;c.height=innerHeight} resize(); addEventListener("resize",resize);
+
+let player={x:200,y:200,r:20,speed:4,xp:0,level:1};
+let enemies=[],bosses=[],achievements=[];
+let corruption=0;
+
+for(let i=0;i<15;i++) enemies.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight,r:12});
+
+function spawnBoss(){
+ bosses.push({x:Math.random()*innerWidth,y:80,r:45,hp:100+player.level*50});
+ document.getElementById("event").textContent="⚠ BOSS HAS ENTERED REALITY";
+}
+setInterval(()=>{
+ corruption++;
+ let e=["Gravity Reversed","Moon Became Disco Ball","Physics Beta Enabled","NPC Confidence Overflow"];
+ document.getElementById("event").textContent=e[Math.floor(Math.random()*e.length)];
+ if(corruption%5===0) spawnBoss();
+},10000);
+
+let move={x:0,y:0};
+const joy=document.getElementById("joystick"),stick=document.getElementById("stick");
+joy.addEventListener("touchmove",e=>{
+ let t=e.touches[0];
+ let r=joy.getBoundingClientRect();
+ let dx=t.clientX-(r.left+60), dy=t.clientY-(r.top+60);
+ let d=Math.hypot(dx,dy)||1;
+ move.x=dx/d; move.y=dy/d;
+ stick.style.left=(45+dx*0.3)+"px";
+ stick.style.top=(45+dy*0.3)+"px";
+ e.preventDefault();
+},{passive:false});
+joy.addEventListener("touchend",()=>{
+ move.x=move.y=0; stick.style.left="45px"; stick.style.top="45px";
+});
+
+function loop(){
+ player.x+=move.x*player.speed;
+ player.y+=move.y*player.speed;
+
+ x.fillStyle="black"; x.fillRect(0,0,c.width,c.height);
+
+ x.fillStyle="cyan";
+ x.beginPath(); x.arc(player.x,player.y,player.r,0,7); x.fill();
+
+ x.fillStyle="hotpink";
+ enemies.forEach((e,i)=>{
+   x.beginPath(); x.arc(e.x,e.y,e.r,0,7); x.fill();
+   if(Math.hypot(player.x-e.x,player.y-e.y)<30){
+      enemies.splice(i,1);
+      player.xp+=10;
+      if(player.xp%100===0){player.level++; achievements.push("Level "+player.level);}
+   }
+ });
+
+ x.fillStyle="red";
+ bosses.forEach((b,i)=>{
+   x.beginPath(); x.arc(b.x,b.y,b.r,0,7); x.fill();
+   if(Math.hypot(player.x-b.x,player.y-b.y)<70){
+      b.hp--;
+      if(b.hp<=0){bosses.splice(i,1); player.xp+=250;}
+   }
+ });
+
+ document.getElementById("stats").textContent =
+  `Level ${player.level} | XP ${player.xp} | Bosses ${bosses.length}`;
+
+ requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
